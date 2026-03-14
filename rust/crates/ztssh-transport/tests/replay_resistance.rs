@@ -17,11 +17,7 @@ use ztssh_protocol::*;
 fn setup_chain(principal: &str) -> (RootCa, SubCa, KeyPair, ZtsshCertificate) {
     let root = RootCa::new();
     let server_kp = KeyPair::new();
-    let intermediate = root.authorize_server(
-        server_kp.public_key_bytes(),
-        "test-srv",
-        None,
-    );
+    let intermediate = root.authorize_server(server_kp.public_key_bytes(), "test-srv", None);
     let mut sub_ca = SubCa::from_keypair(server_kp);
     sub_ca.intermediate_cert = Some(intermediate);
     sub_ca.root_public_key = Some(root.public_key_bytes());
@@ -248,8 +244,7 @@ fn zero_signature_rejected() {
 
     // All-zero signature
     let zero_sig = [0u8; 64];
-    let valid =
-        KeyPair::verify_with_key(&cert.subject_public_key, &zero_sig, challenge_bytes);
+    let valid = KeyPair::verify_with_key(&cert.subject_public_key, &zero_sig, challenge_bytes);
 
     match valid {
         Ok(false) | Err(_) => {} // Expected
@@ -263,11 +258,7 @@ fn zero_signature_rejected() {
 fn expired_cert_rejected_even_with_valid_signature() {
     let root = RootCa::new();
     let server_kp = KeyPair::new();
-    let intermediate = root.authorize_server(
-        server_kp.public_key_bytes(),
-        "test-srv",
-        None,
-    );
+    let intermediate = root.authorize_server(server_kp.public_key_bytes(), "test-srv", None);
     let mut sub_ca = SubCa::from_keypair(server_kp);
     sub_ca.intermediate_cert = Some(intermediate);
     sub_ca.root_public_key = Some(root.public_key_bytes());
@@ -285,7 +276,7 @@ fn expired_cert_rejected_even_with_valid_signature() {
         subject_public_key: client_kp.public_key_bytes(),
         issuer_public_key: sub_ca.public_key_bytes(),
         issued_at: now - 600.0,
-        expires_at: now - 1.0,  // Already expired
+        expires_at: now - 1.0, // Already expired
         signature: [0u8; 64],
     };
     // Sign it with the Sub-CA key to make signature valid

@@ -226,7 +226,9 @@ mod tests {
         let signed = crl.sign(&key);
 
         // Verify with wrong key should fail
-        assert!(signed.verify_and_extract(&wrong_key.public_key_bytes()).is_none());
+        assert!(signed
+            .verify_and_extract(&wrong_key.public_key_bytes())
+            .is_none());
     }
 
     #[test]
@@ -255,7 +257,9 @@ mod tests {
         let wire = signed.to_wire();
         let restored = super::SignedRevocationList::from_wire(&wire).unwrap();
 
-        let extracted = restored.verify_and_extract(&key.public_key_bytes()).unwrap();
+        let extracted = restored
+            .verify_and_extract(&key.public_key_bytes())
+            .unwrap();
         assert!(extracted.is_principal_banned("evil"));
         assert!(extracted.is_client_revoked(7));
     }

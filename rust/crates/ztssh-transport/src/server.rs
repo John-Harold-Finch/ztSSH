@@ -66,8 +66,10 @@ impl ZtsshServer {
     pub async fn listen(&self, addr: &str) -> Result<(), TransportError> {
         let listener = TcpListener::bind(addr).await?;
         tracing::info!(listen_addr = addr, "ZTSSH server listening");
-        emit(&AuditEvent::new(AuditEventType::ServerStarted, AuditOutcome::Success)
-            .detail(format!("Listening on {addr}")));
+        emit(
+            &AuditEvent::new(AuditEventType::ServerStarted, AuditOutcome::Success)
+                .detail(format!("Listening on {addr}")),
+        );
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
@@ -80,9 +82,11 @@ impl ZtsshServer {
                 let current = self.active_connections.load(Ordering::Relaxed);
                 if current >= max_conn {
                     tracing::warn!(peer = %peer, current, max_conn, "Connection rejected: max connections reached");
-                    emit(&AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
-                        .peer(&peer)
-                        .reason(format!("max connections ({max_conn}) reached")));
+                    emit(
+                        &AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
+                            .peer(&peer)
+                            .reason(format!("max connections ({max_conn}) reached")),
+                    );
                     drop(stream);
                     continue;
                 }
@@ -91,16 +95,20 @@ impl ZtsshServer {
             // ── Rate limiting ──
             if let Err(e) = self.policy.evaluate_rate_limit(&peer_ip) {
                 tracing::warn!(peer = %peer, reason = %e, "Connection rate-limited");
-                emit(&AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
-                    .peer(&peer)
-                    .reason(e.to_string()));
+                emit(
+                    &AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
+                        .peer(&peer)
+                        .reason(e.to_string()),
+                );
                 drop(stream);
                 continue;
             }
 
             tracing::info!(peer = %peer, "New connection");
-            emit(&AuditEvent::new(AuditEventType::ConnectionAccepted, AuditOutcome::Success)
-                .peer(&peer));
+            emit(
+                &AuditEvent::new(AuditEventType::ConnectionAccepted, AuditOutcome::Success)
+                    .peer(&peer),
+            );
 
             self.active_connections.fetch_add(1, Ordering::Relaxed);
 
@@ -127,8 +135,10 @@ impl ZtsshServer {
                 }
                 conn_counter.fetch_sub(1, Ordering::Relaxed);
                 tracing::info!(peer = %peer, "Connection closed");
-                emit(&AuditEvent::new(AuditEventType::ConnectionClosed, AuditOutcome::Success)
-                    .peer(&peer));
+                emit(
+                    &AuditEvent::new(AuditEventType::ConnectionClosed, AuditOutcome::Success)
+                        .peer(&peer),
+                );
             });
         }
     }
@@ -151,9 +161,11 @@ async fn handle_connection(
     // ── Handshake ──
     let hello_data = read_message(&mut reader).await?;
     if hello_data.is_empty() || hello_data[0] != handshake_msg::CLIENT_HELLO {
-        emit(&AuditEvent::new(AuditEventType::HandshakeFailed, AuditOutcome::Failure)
-            .peer(peer)
-            .reason("expected ClientHello"));
+        emit(
+            &AuditEvent::new(AuditEventType::HandshakeFailed, AuditOutcome::Failure)
+                .peer(peer)
+                .reason("expected ClientHello"),
+        );
         return Err(TransportError::HandshakeFailed(
             "expected ClientHello".into(),
         ));
@@ -165,10 +177,12 @@ async fn handle_connection(
     // ── Policy check ──
     if let Err(e) = policy.evaluate_connection(&principal) {
         tracing::warn!(peer = peer, principal = %principal, reason = %e, "Policy denied connection");
-        emit(&AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
-            .peer(peer)
-            .principal(&principal)
-            .reason(e.to_string()));
+        emit(
+            &AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
+                .peer(peer)
+                .principal(&principal)
+                .reason(e.to_string()),
+        );
         return Err(TransportError::PolicyDenied(e.to_string()));
     }
 
@@ -176,10 +190,12 @@ async fn handle_connection(
     if let Some(ip) = peer.rsplit_once(':').map(|(ip, _)| ip) {
         if let Err(e) = policy.evaluate_source_ip(&principal, ip) {
             tracing::warn!(peer = peer, principal = %principal, reason = %e, "Policy denied source IP");
-            emit(&AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
-                .peer(peer)
-                .principal(&principal)
-                .reason(e.to_string()));
+            emit(
+                &AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
+                    .peer(peer)
+                    .principal(&principal)
+                    .reason(e.to_string()),
+            );
             return Err(TransportError::PolicyDenied(e.to_string()));
         }
     }
@@ -189,13 +205,16 @@ async fn handle_connection(
         let revoked = crl.lock().await;
         if revoked.is_principal_banned(&principal) {
             tracing::warn!(peer = peer, principal = %principal, "Principal is banned (revoked)");
-            emit(&AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
-                .peer(peer)
-                .principal(&principal)
-                .reason("principal is revoked"));
-            return Err(TransportError::PolicyDenied(
-                format!("principal '{}' is revoked", principal),
-            ));
+            emit(
+                &AuditEvent::new(AuditEventType::PolicyDenied, AuditOutcome::Denied)
+                    .peer(peer)
+                    .principal(&principal)
+                    .reason("principal is revoked"),
+            );
+            return Err(TransportError::PolicyDenied(format!(
+                "principal '{}' is revoked",
+                principal
+            )));
         }
     }
 
@@ -214,15 +233,19 @@ async fn handle_connection(
         ttl = format!("{:.0}s", cert.ttl_remaining()),
         "Certificate issued, handshake complete"
     );
-    emit(&AuditEvent::new(AuditEventType::HandshakeCompleted, AuditOutcome::Success)
-        .peer(peer)
-        .principal(&principal)
-        .cert_serial(cert.serial)
-        .phase(SessionPhase::Handshake));
-    emit(&AuditEvent::new(AuditEventType::CertIssued, AuditOutcome::Success)
-        .peer(peer)
-        .principal(&principal)
-        .cert_serial(cert.serial));
+    emit(
+        &AuditEvent::new(AuditEventType::HandshakeCompleted, AuditOutcome::Success)
+            .peer(peer)
+            .principal(&principal)
+            .cert_serial(cert.serial)
+            .phase(SessionPhase::Handshake),
+    );
+    emit(
+        &AuditEvent::new(AuditEventType::CertIssued, AuditOutcome::Success)
+            .peer(peer)
+            .principal(&principal)
+            .cert_serial(cert.serial),
+    );
 
     // ── Challenge Loop ──
     let mut sequence: u32 = 0;
@@ -247,18 +270,27 @@ async fn handle_connection(
         let challenge_bytes = challenge.serialize();
         write_message(&mut writer, &challenge_bytes).await?;
         tracing::debug!(peer = peer, seq = sequence, "IDENTITY_CHALLENGE sent");
-        emit(&AuditEvent::new(AuditEventType::ChallengeSent, AuditOutcome::Success)
-            .peer(peer)
-            .sequence(sequence)
-            .phase(SessionPhase::Challenge));
+        emit(
+            &AuditEvent::new(AuditEventType::ChallengeSent, AuditOutcome::Success)
+                .peer(peer)
+                .sequence(sequence)
+                .phase(SessionPhase::Challenge),
+        );
 
         // Wait for proof, handling possible renewal requests within the deadline.
         let deadline_instant =
             tokio::time::Instant::now() + std::time::Duration::from_secs(challenge_deadline as u64);
 
-        let result =
-            await_proof(&mut reader, &mut writer, &sub_ca, &challenge_bytes, deadline_instant, peer, crl)
-                .await;
+        let result = await_proof(
+            &mut reader,
+            &mut writer,
+            &sub_ca,
+            &challenge_bytes,
+            deadline_instant,
+            peer,
+            crl,
+        )
+        .await;
 
         match result {
             Ok(ProofOutcome::Verified { principal, seq }) => {
@@ -268,20 +300,24 @@ async fn handle_connection(
                 };
                 write_message(&mut writer, &ack.serialize()).await?;
                 tracing::info!(peer = peer, principal = %principal, seq = seq, "IDENTITY_ACK sent");
-                emit(&AuditEvent::new(AuditEventType::ProofVerified, AuditOutcome::Success)
-                    .peer(peer)
-                    .principal(&principal)
-                    .sequence(seq)
-                    .phase(SessionPhase::Challenge));
+                emit(
+                    &AuditEvent::new(AuditEventType::ProofVerified, AuditOutcome::Success)
+                        .peer(peer)
+                        .principal(&principal)
+                        .sequence(seq)
+                        .phase(SessionPhase::Challenge),
+                );
             }
             Ok(ProofOutcome::Failed { reason, terminate }) => {
                 write_message(&mut writer, &terminate.serialize()).await?;
                 tracing::warn!(peer = peer, reason = %reason, "SESSION_TERMINATE");
-                emit(&AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
-                    .peer(peer)
-                    .reason(&reason)
-                    .sequence(sequence)
-                    .phase(SessionPhase::Termination));
+                emit(
+                    &AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
+                        .peer(peer)
+                        .reason(&reason)
+                        .sequence(sequence)
+                        .phase(SessionPhase::Termination),
+                );
                 return Ok(());
             }
             Err(TransportError::ChallengeTimeout) => {
@@ -292,11 +328,13 @@ async fn handle_connection(
                 };
                 write_message(&mut writer, &terminate.serialize()).await?;
                 tracing::warn!(peer = peer, seq = sequence, "Challenge timeout");
-                emit(&AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
-                    .peer(peer)
-                    .reason("challenge_timeout")
-                    .sequence(sequence)
-                    .phase(SessionPhase::Termination));
+                emit(
+                    &AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
+                        .peer(peer)
+                        .reason("challenge_timeout")
+                        .sequence(sequence)
+                        .phase(SessionPhase::Termination),
+                );
                 return Ok(());
             }
             Err(e) => return Err(e),
@@ -358,11 +396,13 @@ where
                     serial = new_cert.serial,
                     "Certificate renewed"
                 );
-                emit(&AuditEvent::new(AuditEventType::CertRenewed, AuditOutcome::Success)
-                    .peer(peer)
-                    .principal(&principal)
-                    .cert_serial(new_cert.serial)
-                    .phase(SessionPhase::Renewal));
+                emit(
+                    &AuditEvent::new(AuditEventType::CertRenewed, AuditOutcome::Success)
+                        .peer(peer)
+                        .principal(&principal)
+                        .cert_serial(new_cert.serial)
+                        .phase(SessionPhase::Renewal),
+                );
                 let response = build_cert_renewal_response(&new_cert);
                 write_message(writer, &response).await?;
             }
@@ -537,8 +577,9 @@ pub fn parse_server_hello(data: &[u8]) -> Result<ZtsshCertificate, TransportErro
     let cert_len = read_u32_at(data, &mut pos)?;
     check_remaining(data, pos, cert_len)?;
 
-    let cert = ZtsshCertificate::from_wire(&data[pos..pos + cert_len])
-        .map_err(|e| TransportError::HandshakeFailed(format!("invalid cert in ServerHello: {e}")))?;
+    let cert = ZtsshCertificate::from_wire(&data[pos..pos + cert_len]).map_err(|e| {
+        TransportError::HandshakeFailed(format!("invalid cert in ServerHello: {e}"))
+    })?;
     Ok(cert)
 }
 
@@ -605,7 +646,11 @@ fn read_u32_at(data: &[u8], pos: &mut usize) -> Result<usize, TransportError> {
     if *pos + 4 > data.len() {
         return Err(TransportError::HandshakeFailed("truncated u32".into()));
     }
-    let val = u32::from_be_bytes(data[*pos..*pos + 4].try_into().expect("slice is exactly 4 bytes")) as usize;
+    let val = u32::from_be_bytes(
+        data[*pos..*pos + 4]
+            .try_into()
+            .expect("slice is exactly 4 bytes"),
+    ) as usize;
     *pos += 4;
     Ok(val)
 }

@@ -12,8 +12,7 @@ use ztssh_protocol::*;
 use crate::error::TransportError;
 use crate::framing::{read_message, write_message};
 use crate::server::{
-    build_cert_renewal_request, build_client_hello, parse_cert_renewal_response,
-    parse_server_hello,
+    build_cert_renewal_request, build_client_hello, parse_cert_renewal_response, parse_server_hello,
 };
 
 /// Run a ZTSSH client session.
@@ -40,10 +39,12 @@ pub async fn run_session(addr: &str, principal: &str) -> Result<(), TransportErr
         ttl = format!("{:.0}s", cert.ttl_remaining()),
         "ServerHello received"
     );
-    emit(&AuditEvent::new(AuditEventType::HandshakeCompleted, AuditOutcome::Success)
-        .principal(principal)
-        .cert_serial(cert.serial)
-        .phase(SessionPhase::Handshake));
+    emit(
+        &AuditEvent::new(AuditEventType::HandshakeCompleted, AuditOutcome::Success)
+            .principal(principal)
+            .cert_serial(cert.serial)
+            .phase(SessionPhase::Handshake),
+    );
 
     // ── Protocol Loop ──
     loop {
@@ -82,10 +83,12 @@ pub async fn run_session(addr: &str, principal: &str) -> Result<(), TransportErr
                         ttl = format!("{:.0}s", new_cert.ttl_remaining()),
                         "Certificate renewed"
                     );
-                    emit(&AuditEvent::new(AuditEventType::CertRenewed, AuditOutcome::Success)
-                        .principal(principal)
-                        .cert_serial(new_cert.serial)
-                        .phase(SessionPhase::Renewal));
+                    emit(
+                        &AuditEvent::new(AuditEventType::CertRenewed, AuditOutcome::Success)
+                            .principal(principal)
+                            .cert_serial(new_cert.serial)
+                            .phase(SessionPhase::Renewal),
+                    );
 
                     cert = new_cert;
                     ephemeral_key = new_key;
@@ -136,10 +139,15 @@ pub async fn run_session(addr: &str, principal: &str) -> Result<(), TransportErr
                             message = %term.reason_message,
                             "SESSION_TERMINATE received"
                         );
-                        emit(&AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
+                        emit(
+                            &AuditEvent::new(
+                                AuditEventType::SessionTerminated,
+                                AuditOutcome::Denied,
+                            )
                             .principal(principal)
                             .reason(format!("{:?}: {}", term.reason_code, term.reason_message))
-                            .phase(SessionPhase::Termination));
+                            .phase(SessionPhase::Termination),
+                        );
                         return Ok(());
                     }
                     other => {
@@ -155,10 +163,12 @@ pub async fn run_session(addr: &str, principal: &str) -> Result<(), TransportErr
                     message = %term.reason_message,
                     "SESSION_TERMINATE received"
                 );
-                emit(&AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
-                    .principal(principal)
-                    .reason(format!("{:?}: {}", term.reason_code, term.reason_message))
-                    .phase(SessionPhase::Termination));
+                emit(
+                    &AuditEvent::new(AuditEventType::SessionTerminated, AuditOutcome::Denied)
+                        .principal(principal)
+                        .reason(format!("{:?}: {}", term.reason_code, term.reason_message))
+                        .phase(SessionPhase::Termination),
+                );
                 return Ok(());
             }
             other => {

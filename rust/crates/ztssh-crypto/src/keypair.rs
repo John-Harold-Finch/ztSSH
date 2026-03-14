@@ -40,7 +40,10 @@ impl KeyPair {
 
     /// Verify a signature against this keypair's public key.
     pub fn verify(&self, signature: &ed25519_dalek::Signature, data: &[u8]) -> bool {
-        self.signing_key.verifying_key().verify(data, signature).is_ok()
+        self.signing_key
+            .verifying_key()
+            .verify(data, signature)
+            .is_ok()
     }
 
     /// Verify a signature using raw public key bytes (static method).
@@ -139,12 +142,8 @@ mod tests {
         let kp = KeyPair::new();
         let data = b"static verify test";
         let sig = kp.sign(data);
-        let result = KeyPair::verify_with_key(
-            &kp.public_key_bytes(),
-            &sig.to_bytes(),
-            data,
-        )
-        .unwrap();
+        let result =
+            KeyPair::verify_with_key(&kp.public_key_bytes(), &sig.to_bytes(), data).unwrap();
         assert!(result);
     }
 }

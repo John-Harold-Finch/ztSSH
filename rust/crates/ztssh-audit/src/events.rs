@@ -194,7 +194,10 @@ mod tests {
     #[test]
     fn event_type_display() {
         assert_eq!(format!("{}", AuditEventType::CertIssued), "cert_issued");
-        assert_eq!(format!("{}", AuditEventType::ProofRejected), "proof_rejected");
+        assert_eq!(
+            format!("{}", AuditEventType::ProofRejected),
+            "proof_rejected"
+        );
     }
 
     #[test]

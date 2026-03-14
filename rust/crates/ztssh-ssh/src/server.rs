@@ -158,10 +158,7 @@ impl Handler for SshConnectionHandler {
         std::future::ready(Ok(()))
     }
 
-    fn auth_none(
-        &mut self,
-        user: &str,
-    ) -> impl Future<Output = Result<Auth, Self::Error>> + Send {
+    fn auth_none(&mut self, user: &str) -> impl Future<Output = Result<Auth, Self::Error>> + Send {
         tracing::debug!(peer = %self.peer, user = user, "SSH auth_none accepted");
         std::future::ready(Ok(Auth::Accept))
     }

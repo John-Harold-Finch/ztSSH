@@ -60,7 +60,12 @@ impl PolicyEngine {
     /// Returns `Ok(())` if allowed, `Err(PolicyError::Denied)` if not.
     pub fn evaluate_connection(&self, principal: &str) -> Result<(), PolicyError> {
         // Check denied list first
-        if self.config.server.denied_principals.contains(&principal.to_string()) {
+        if self
+            .config
+            .server
+            .denied_principals
+            .contains(&principal.to_string())
+        {
             return Err(PolicyError::Denied(format!(
                 "principal '{}' is in the deny list",
                 principal
@@ -69,7 +74,11 @@ impl PolicyEngine {
 
         // Check allowlist
         if self.config.server.require_principal_allowlist
-            && !self.config.server.allowed_principals.contains(&principal.to_string())
+            && !self
+                .config
+                .server
+                .allowed_principals
+                .contains(&principal.to_string())
         {
             return Err(PolicyError::Denied(format!(
                 "principal '{}' is not in the allow list",
@@ -154,7 +163,11 @@ fn ip_matches_any(ip: &str, patterns: &[String]) -> bool {
                 Err(_) => continue,
             };
             if let (Some(ip_num), Some(net_num)) = (parse_ipv4(ip), parse_ipv4(network)) {
-                let mask = if mask_bits == 0 { 0 } else { !0u32 << (32 - mask_bits) };
+                let mask = if mask_bits == 0 {
+                    0
+                } else {
+                    !0u32 << (32 - mask_bits)
+                };
                 if (ip_num & mask) == (net_num & mask) {
                     return true;
                 }

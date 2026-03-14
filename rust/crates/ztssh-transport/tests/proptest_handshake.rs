@@ -3,12 +3,12 @@
 //! Verifies roundtrip invariants for handshake message builders/parsers.
 
 use proptest::prelude::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 use ztssh_crypto::{KeyPair, ZtsshCertificate};
 use ztssh_transport::server::{
     build_cert_renewal_request, build_client_hello, build_server_hello,
     parse_cert_renewal_response, parse_client_hello, parse_server_hello,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn arb_principal() -> impl Strategy<Value = String> {
     "[a-z][a-z0-9_-]{0,31}".prop_map(|s| s)

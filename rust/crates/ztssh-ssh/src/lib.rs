@@ -12,12 +12,12 @@
 //! The ZTSSH framing layer (`read_message` / `write_message`) operates
 //! directly over the SSH channel's `AsyncRead + AsyncWrite` stream.
 
-pub mod server;
 pub mod client;
 mod error;
 pub mod host_keys;
+pub mod server;
 
-pub use error::SshTransportError;
 pub use client::SshClientConfig;
-pub use server::SshServerConfig;
+pub use error::SshTransportError;
 pub use host_keys::generate_host_key;
+pub use server::SshServerConfig;
