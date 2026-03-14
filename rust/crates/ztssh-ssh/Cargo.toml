@@ -1,0 +1,21 @@
+[package]
+name = "ztssh-ssh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH SSH transport layer — runs ZTSSH protocol over russh SSH channels"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+ztssh-protocol = { workspace = true }
+ztssh-ca = { workspace = true }
+ztssh-transport = { workspace = true }
+ztssh-audit = { workspace = true }
+ztssh-policy = { workspace = true }
+russh = "0.57"
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

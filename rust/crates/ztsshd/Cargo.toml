@@ -1,0 +1,25 @@
+[package]
+name = "ztsshd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH server daemon — continuous identity verification SSH server"
+
+[[bin]]
+name = "ztsshd"
+path = "src/main.rs"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+ztssh-protocol = { workspace = true }
+ztssh-ca = { workspace = true }
+ztssh-transport = { workspace = true }
+ztssh-audit = { workspace = true }
+ztssh-policy = { workspace = true }
+ztssh-ssh = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+hex = { workspace = true }

@@ -1,0 +1,77 @@
+[workspace]
+members = [
+    "crates/ztssh-crypto",
+    "crates/ztssh-protocol",
+    "crates/ztssh-ca",
+    "crates/ztssh-transport",
+    "crates/ztssh-audit",
+    "crates/ztssh-policy",
+    "crates/ztssh-keystore",
+    "crates/ztssh-ca-cli",
+    "crates/ztsshd",
+    "crates/ztssh-client",
+    "crates/ztssh-ssh",
+]
+resolver = "2"
+
+# This is a virtual workspace — no root package.
+# Phase 2 binaries: ztssh (client), ztsshd (server), ztssh-ca (CLI).
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/John-Harold-Finch/ztSSH"
+description = "Zero Trust SSH — Continuous Session Identity Verification"
+
+[workspace.dependencies]
+# Crypto
+ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"] }
+rand = "0.8"
+zeroize = { version = "1", features = ["derive"] }
+subtle = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Time
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+hex = "0.4"
+toml = "0.8"
+
+# Internal crates
+ztssh-crypto = { path = "crates/ztssh-crypto" }
+ztssh-protocol = { path = "crates/ztssh-protocol" }
+ztssh-ca = { path = "crates/ztssh-ca" }
+ztssh-transport = { path = "crates/ztssh-transport" }
+ztssh-policy = { path = "crates/ztssh-policy" }
+ztssh-audit = { path = "crates/ztssh-audit" }
+ztssh-keystore = { path = "crates/ztssh-keystore" }
+ztssh-ssh = { path = "crates/ztssh-ssh" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.reproducible]
+inherits = "release"
+strip = false

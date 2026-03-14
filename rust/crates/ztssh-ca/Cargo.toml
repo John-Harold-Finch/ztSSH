@@ -1,0 +1,21 @@
+[package]
+name = "ztssh-ca"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH Certificate Authority — hierarchical Root CA + Sub-CA + RevocationList"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+ztssh-protocol = { workspace = true }
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
+subtle = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

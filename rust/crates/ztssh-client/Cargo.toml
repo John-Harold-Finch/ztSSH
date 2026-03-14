@@ -1,0 +1,20 @@
+[package]
+name = "ztssh-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH client — connects to a ZTSSH server with continuous identity verification"
+
+[[bin]]
+name = "ztssh"
+path = "src/main.rs"
+
+[dependencies]
+ztssh-transport = { workspace = true }
+ztssh-ssh = { workspace = true }
+ztssh-audit = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }

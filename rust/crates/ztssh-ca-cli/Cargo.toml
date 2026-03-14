@@ -1,0 +1,21 @@
+[package]
+name = "ztssh-ca-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH offline Root CA management CLI"
+
+[[bin]]
+name = "ztssh-ca"
+path = "src/main.rs"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+ztssh-ca = { workspace = true }
+ztssh-protocol = { workspace = true }
+ztssh-keystore = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }

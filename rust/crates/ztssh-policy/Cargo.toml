@@ -1,0 +1,13 @@
+[package]
+name = "ztssh-policy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH policy engine — configurable access rules, rate limits, principal restrictions"
+
+[dependencies]
+serde = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

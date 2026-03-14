@@ -1,0 +1,180 @@
+(* ─────────────────────────────────────────────────────────────────────
+   ZTSSH Protocol — ProVerif Formal Model
+   ─────────────────────────────────────────────────────────────────────
+   
+   Models the continuous identity verification loop at the core of ZTSSH.
+   
+   Entities:
+     - Root CA (offline): issues IntermediateCertificates to servers
+     - Server (Sub-CA): issues short-lived ZtsshCertificates to clients,
+       runs the challenge-response loop
+     - Client: proves liveness by signing challenges with ephemeral keys
+   
+   Security goals:
+     1. Authentication: only the legitimate client can produce valid proofs
+     2. Freshness: replayed proofs are rejected (nonce uniqueness)
+     3. Revocation: revoked/banned principals cannot authenticate
+     4. Forward secrecy: compromise of one ephemeral key does not
+        compromise past or future sessions
+   
+   Threat model: Dolev-Yao (network attacker can intercept, modify,
+   replay, inject messages).
+   ───────────────────────────────────────────────────────────────────── *)
+
+(* ─── Types ─── *)
+
+type skey.       (* Ed25519 signing key *)
+type pkey.       (* Ed25519 verifying key *)
+type signature.  (* Ed25519 signature *)
+type nonce.      (* Random challenge nonce *)
+type principal.  (* User identity *)
+
+(* ─── Cryptographic primitives ─── *)
+
+(* Ed25519 keypair *)
+fun pk(skey): pkey.
+
+(* Signing *)
+fun sign(bitstring, skey): signature.
+
+(* Verification: returns true iff sig = sign(msg, sk) and pk(sk) = vk *)
+reduc forall m: bitstring, sk: skey;
+    verify(sign(m, sk), m, pk(sk)) = true.
+
+(* ─── Certificate structures ─── *)
+
+(* IntermediateCertificate: (server_id, server_pk, root_sig) *)
+fun intermediate_cert(bitstring, pkey, signature): bitstring [data].
+
+(* ZtsshCertificate: (serial, principal, client_pk, issuer_pk, sig) *)
+fun ztssh_cert(bitstring, principal, pkey, pkey, signature): bitstring [data].
+
+(* ─── Channels ─── *)
+
+free c: channel.                (* Public network channel *)
+free secure_ca: channel [private]. (* Offline Root CA → Server channel *)
+
+(* ─── Names ─── *)
+
+free alice: principal.
+free secret_payload: bitstring [private].
+
+(* ─── Events for correspondence assertions ─── *)
+
+event ClientStartsSession(principal, pkey).
+event ServerAcceptsClient(principal, pkey).
+event ChallengeIssued(nonce, bitstring).
+event ProofVerified(principal, nonce).
+event SessionTerminated(principal, bitstring).
+event CertificateIssued(principal, pkey).
+event CertificateRevoked(bitstring).
+
+(* ─── Security queries ─── *)
+
+(* Q1: Authentication — if server accepts a proof, the client must have produced it. *)
+query n: nonce, p: principal;
+    event(ProofVerified(p, n)) ==> event(ChallengeIssued(n, new seq)).
+
+(* Q2: Secrecy — an attacker cannot learn the secret payload
+   (transmitted only after successful verification). *)
+query attacker(secret_payload).
+
+(* Q3: Injective agreement — each proof corresponds to exactly one challenge. *)
+query n: nonce, p: principal;
+    inj-event(ProofVerified(p, n)) ==> inj-event(ChallengeIssued(n, new seq)).
+
+(* ─── Root CA process (offline) ─── *)
+
+let RootCA(root_sk: skey) =
+    (* Issue an intermediate certificate to a server *)
+    in(secure_ca, (server_id: bitstring, server_pk: pkey));
+    let cert_body = (server_id, server_pk) in
+    let root_sig = sign(cert_body, root_sk) in
+    let icert = intermediate_cert(server_id, server_pk, root_sig) in
+    out(secure_ca, icert).
+
+(* ─── Server process (Sub-CA + challenge loop) ─── *)
+
+let Server(root_pk: pkey, server_sk: skey) =
+    (* Receive intermediate certificate from Root CA *)
+    in(secure_ca, icert: bitstring);
+
+    (* Wait for client connection (ClientHello) *)
+    in(c, (p: principal, client_ephem_pk: pkey));
+    event ClientStartsSession(p, client_ephem_pk);
+
+    (* Issue initial ZtsshCertificate *)
+    let serial = new s: bitstring in
+    let cert_body = (serial, p, client_ephem_pk, pk(server_sk)) in
+    let cert_sig = sign(cert_body, server_sk) in
+    let client_cert = ztssh_cert(serial, p, client_ephem_pk, pk(server_sk), cert_sig) in
+    event CertificateIssued(p, client_ephem_pk);
+    out(c, client_cert);
+
+    (* === Challenge-Response Loop === *)
+    (* Generate fresh nonce *)
+    new challenge_nonce: nonce;
+    let seq = new seq_num: bitstring in
+    event ChallengeIssued(challenge_nonce, seq);
+    out(c, (challenge_nonce, seq));
+
+    (* Receive proof *)
+    in(c, (proof_cert: bitstring, proof_sig: signature, proof_nonce: nonce));
+
+    (* Verify the proof:
+       1. Extract cert fields
+       2. Verify cert signature (from this Sub-CA)
+       3. Verify proof signature (from client's ephemeral key)
+       4. Check nonce matches *)
+    let ztssh_cert(=serial, =p, ephem_pk, =pk(server_sk), csig) = proof_cert in
+    if verify(csig, (serial, p, ephem_pk, pk(server_sk)), pk(server_sk)) = true then
+    if verify(proof_sig, (challenge_nonce, seq), ephem_pk) = true then
+    if proof_nonce = challenge_nonce then
+    (
+        event ProofVerified(p, challenge_nonce);
+        event ServerAcceptsClient(p, ephem_pk);
+        (* Session continues — send secret payload *)
+        out(c, secret_payload)
+    )
+    else
+    (
+        event SessionTerminated(p, seq)
+    ).
+
+(* ─── Client process ─── *)
+
+let Client(p: principal, client_ephem_sk: skey, server_pk: pkey) =
+    (* Send ClientHello *)
+    out(c, (p, pk(client_ephem_sk)));
+
+    (* Receive initial certificate *)
+    in(c, client_cert: bitstring);
+
+    (* === Respond to challenge === *)
+    in(c, (challenge_nonce: nonce, seq: bitstring));
+
+    (* Sign the challenge with ephemeral key *)
+    let proof_sig = sign((challenge_nonce, seq), client_ephem_sk) in
+    out(c, (client_cert, proof_sig, challenge_nonce)).
+
+(* ─── Main process ─── *)
+
+process
+    (* Generate Root CA key *)
+    new root_sk: skey;
+    let root_pk = pk(root_sk) in
+
+    (* Generate server key *)
+    new server_sk: skey;
+    let server_pk = pk(server_sk) in
+
+    (* Generate client ephemeral key *)
+    new client_ephem_sk: skey;
+
+    (
+        RootCA(root_sk) |
+        Server(root_pk, server_sk) |
+        Client(alice, client_ephem_sk, server_pk) |
+        (* Allow unbounded sessions for the attacker *)
+        !Client(alice, new fresh_sk: skey, server_pk)
+    )

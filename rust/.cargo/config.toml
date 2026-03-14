@@ -1,0 +1,25 @@
+# Reproducible build configuration for ZTSSH.
+#
+# These settings ensure that repeated builds from the same source tree
+# produce bit-identical binaries, which is a security requirement for
+# supply-chain integrity verification.
+
+[build]
+# Embed relative paths in debug info instead of absolute paths.
+# This makes builds independent of the build directory location.
+rustflags = ["--remap-path-prefix=.=ztssh"]
+
+[env]
+# Pin the source date for embedded timestamps (if any).
+# Uses the Unix epoch as a stable reference point.
+SOURCE_DATE_EPOCH = "0"
+
+[profile.reproducible]
+inherits = "release"
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+# Ensure overflow checks remain enabled for security
+overflow-checks = true

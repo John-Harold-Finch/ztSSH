@@ -1,0 +1,15 @@
+[package]
+name = "ztssh-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH wire protocol — message types, serialization, constants"
+
+[dependencies]
+serde = { workspace = true }
+bincode = { workspace = true }
+thiserror = { workspace = true }
+ztssh-crypto = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

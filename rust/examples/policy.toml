@@ -1,0 +1,33 @@
+# ZTSSH Server Policy Configuration
+# This file configures access control and operational limits for the ZTSSH server.
+
+[server]
+# Maximum concurrent connections (0 = unlimited)
+max_connections = 100
+
+# Principals explicitly allowed to connect.
+# Only enforced if require_principal_allowlist = true.
+allowed_principals = ["alice", "bob", "carol"]
+
+# Principals explicitly denied (always enforced).
+denied_principals = []
+
+# If true, only principals in allowed_principals may connect.
+require_principal_allowlist = false
+
+# Maximum certificate TTL in seconds the server will issue.
+max_cert_ttl = 300
+
+# Minimum challenge interval in seconds.
+min_challenge_interval = 10
+
+# Per-principal rules (optional)
+[[principal_rules]]
+principal = "alice"
+max_sessions = 5
+# allowed_source_ips = ["10.0.0.0/8"]
+
+# [[principal_rules]]
+# principal = "bob"
+# max_sessions = 2
+# allowed_source_ips = ["192.168.1.0/24"]

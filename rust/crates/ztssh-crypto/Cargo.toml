@@ -1,0 +1,16 @@
+[package]
+name = "ztssh-crypto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH cryptographic primitives — Ed25519 keypairs, certificates, challenges"
+
+[dependencies]
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

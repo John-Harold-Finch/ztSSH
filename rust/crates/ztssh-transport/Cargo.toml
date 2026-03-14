@@ -1,0 +1,20 @@
+[package]
+name = "ztssh-transport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH transport layer — TCP framing, handshake messages, session management"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+ztssh-protocol = { workspace = true }
+ztssh-ca = { workspace = true }
+ztssh-audit = { workspace = true }
+ztssh-policy = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"
+tokio = { workspace = true }

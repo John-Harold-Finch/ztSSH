@@ -1,0 +1,19 @@
+[package]
+name = "ztssh-keystore"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZTSSH key storage — secure persistence for Ed25519 keys with filesystem backend"
+
+[dependencies]
+ztssh-crypto = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
