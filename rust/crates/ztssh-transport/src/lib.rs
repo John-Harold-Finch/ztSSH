@@ -7,10 +7,10 @@
 //! - **Server** — server-side ZTSSH session (challenge loop, verification)
 //! - **Client** — client-side ZTSSH session (proof, renewal)
 
+pub mod client;
 mod error;
 mod framing;
 pub mod server;
-pub mod client;
 
 pub use error::TransportError;
 pub use framing::{read_message, write_message};

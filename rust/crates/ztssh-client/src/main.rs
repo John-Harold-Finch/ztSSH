@@ -94,8 +94,7 @@ async fn main() -> Result<()> {
     };
 
     // Initialize tracing
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     match cli.log_format.as_str() {
         "json" => {
@@ -120,15 +119,11 @@ async fn main() -> Result<()> {
     );
 
     match cli.mode {
-        TransportMode::Tcp => {
-            ztssh_transport::client::run_session(&connect, &principal)
-                .await
-                .map_err(|e| anyhow::anyhow!(e))
-        }
-        TransportMode::Ssh => {
-            ztssh_ssh::client::run_ssh_session(&connect, &principal)
-                .await
-                .map_err(|e| anyhow::anyhow!("{e}"))
-        }
+        TransportMode::Tcp => ztssh_transport::client::run_session(&connect, &principal)
+            .await
+            .map_err(|e| anyhow::anyhow!(e)),
+        TransportMode::Ssh => ztssh_ssh::client::run_ssh_session(&connect, &principal)
+            .await
+            .map_err(|e| anyhow::anyhow!("{e}")),
     }
 }

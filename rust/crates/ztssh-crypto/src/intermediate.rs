@@ -56,7 +56,9 @@ impl IntermediateCertificate {
 
     /// Check if this server is allowed to certify a given principal.
     pub fn can_certify(&self, principal: &str) -> bool {
-        self.allowed_principals.iter().any(|p| p == "*" || p == principal)
+        self.allowed_principals
+            .iter()
+            .any(|p| p == "*" || p == principal)
     }
 
     /// Serialize the signable body (everything except signature).
@@ -194,7 +196,9 @@ fn read_string(data: &[u8], pos: &mut usize) -> Result<String, CryptoError> {
 
 fn read_bytes_32(data: &[u8], pos: &mut usize) -> Result<[u8; 32], CryptoError> {
     if *pos + 32 > data.len() {
-        return Err(CryptoError::InvalidWireFormat("truncated 32-byte field".into()));
+        return Err(CryptoError::InvalidWireFormat(
+            "truncated 32-byte field".into(),
+        ));
     }
     let mut buf = [0u8; 32];
     buf.copy_from_slice(&data[*pos..*pos + 32]);
@@ -204,7 +208,9 @@ fn read_bytes_32(data: &[u8], pos: &mut usize) -> Result<[u8; 32], CryptoError> 
 
 fn read_bytes_64(data: &[u8], pos: &mut usize) -> Result<[u8; 64], CryptoError> {
     if *pos + 64 > data.len() {
-        return Err(CryptoError::InvalidWireFormat("truncated 64-byte field".into()));
+        return Err(CryptoError::InvalidWireFormat(
+            "truncated 64-byte field".into(),
+        ));
     }
     let mut buf = [0u8; 64];
     buf.copy_from_slice(&data[*pos..*pos + 64]);
@@ -277,10 +283,7 @@ mod tests {
 
         let wire = cert.to_wire();
         let restored = IntermediateCertificate::from_wire(&wire).unwrap();
-        assert_eq!(
-            restored.allowed_principals,
-            vec!["alice", "bob", "charlie"]
-        );
+        assert_eq!(restored.allowed_principals, vec!["alice", "bob", "charlie"]);
     }
 
     #[test]

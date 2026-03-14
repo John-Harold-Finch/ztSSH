@@ -5,7 +5,9 @@
 
 use proptest::prelude::*;
 use ztssh_crypto::generate_nonce;
-use ztssh_protocol::{IdentityAck, IdentityChallenge, IdentityProof, SessionTerminate, TerminateReason};
+use ztssh_protocol::{
+    IdentityAck, IdentityChallenge, IdentityProof, SessionTerminate, TerminateReason,
+};
 
 fn arb_nonce() -> impl Strategy<Value = Vec<u8>> {
     proptest::collection::vec(any::<u8>(), 1..128)

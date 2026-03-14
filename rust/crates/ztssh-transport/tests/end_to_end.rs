@@ -7,7 +7,7 @@ use ztssh_ca::RootCa;
 use ztssh_crypto::KeyPair;
 use ztssh_transport::{client, server::ZtsshServer};
 
-use ztssh_policy::{PolicyEngine, PolicyConfig, ServerPolicy};
+use ztssh_policy::{PolicyConfig, PolicyEngine, ServerPolicy};
 
 /// Pick an available TCP port by binding to :0 and checking the assigned port.
 fn available_port() -> u16 {
@@ -36,8 +36,7 @@ async fn e2e_handshake_and_three_challenges() {
     let port = available_port();
     let addr = format!("127.0.0.1:{port}");
 
-    let server = ZtsshServer::new(sub_ca)
-        .with_intervals(1, 5); // 1s challenge interval, 5s deadline
+    let server = ZtsshServer::new(sub_ca).with_intervals(1, 5); // 1s challenge interval, 5s deadline
 
     let server_addr = addr.clone();
     let server_handle = tokio::spawn(async move {
@@ -50,9 +49,8 @@ async fn e2e_handshake_and_three_challenges() {
 
     // ── Run client session in a separate task ──
     let client_addr = addr.clone();
-    let client_handle = tokio::spawn(async move {
-        client::run_session(&client_addr, "alice").await
-    });
+    let client_handle =
+        tokio::spawn(async move { client::run_session(&client_addr, "alice").await });
 
     // Let 3 challenge cycles execute (1s interval × 3 + margin)
     tokio::time::sleep(std::time::Duration::from_secs(4)).await;
@@ -78,11 +76,8 @@ async fn e2e_certificate_renewal() {
     let root_ca = RootCa::new();
     let sub_key = KeyPair::new();
 
-    let intermediate = root_ca.authorize_server(
-        sub_key.public_key_bytes(),
-        "renewal-test-server",
-        None,
-    );
+    let intermediate =
+        root_ca.authorize_server(sub_key.public_key_bytes(), "renewal-test-server", None);
 
     let mut sub_ca = ztssh_ca::SubCa::from_keypair(sub_key);
     sub_ca.root_public_key = Some(intermediate.issuer_public_key);
@@ -93,8 +88,7 @@ async fn e2e_certificate_renewal() {
     let port = available_port();
     let addr = format!("127.0.0.1:{port}");
 
-    let server = ZtsshServer::new(sub_ca)
-        .with_intervals(1, 5);
+    let server = ZtsshServer::new(sub_ca).with_intervals(1, 5);
 
     let server_addr = addr.clone();
     let server_handle = tokio::spawn(async move {
@@ -104,9 +98,7 @@ async fn e2e_certificate_renewal() {
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
     let client_addr = addr.clone();
-    let client_handle = tokio::spawn(async move {
-        client::run_session(&client_addr, "bob").await
-    });
+    let client_handle = tokio::spawn(async move { client::run_session(&client_addr, "bob").await });
 
     // The cert is 3s, renewal window is 60s, so the client should renew
     // at the very first challenge. Let 3 cycles run.
@@ -138,8 +130,7 @@ async fn e2e_restricted_principal_rejected() {
     let port = available_port();
     let addr = format!("127.0.0.1:{port}");
 
-    let server = ZtsshServer::new(sub_ca)
-        .with_intervals(1, 5);
+    let server = ZtsshServer::new(sub_ca).with_intervals(1, 5);
 
     let server_addr = addr.clone();
     let server_handle = tokio::spawn(async move {
@@ -177,8 +168,7 @@ async fn e2e_allowed_principal_accepted() {
     let port = available_port();
     let addr = format!("127.0.0.1:{port}");
 
-    let server = ZtsshServer::new(sub_ca)
-        .with_intervals(1, 5);
+    let server = ZtsshServer::new(sub_ca).with_intervals(1, 5);
 
     let server_addr = addr.clone();
     let server_handle = tokio::spawn(async move {
@@ -188,9 +178,8 @@ async fn e2e_allowed_principal_accepted() {
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
     let client_addr = addr.clone();
-    let client_handle = tokio::spawn(async move {
-        client::run_session(&client_addr, "alice").await
-    });
+    let client_handle =
+        tokio::spawn(async move { client::run_session(&client_addr, "alice").await });
 
     // Let 2 cycles pass — alice should be accepted
     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
@@ -252,11 +241,7 @@ async fn e2e_policy_allowlist_enforced() {
     let root_ca = RootCa::new();
     let sub_key = KeyPair::new();
 
-    let intermediate = root_ca.authorize_server(
-        sub_key.public_key_bytes(),
-        "allowlist-srv",
-        None,
-    );
+    let intermediate = root_ca.authorize_server(sub_key.public_key_bytes(), "allowlist-srv", None);
 
     let mut sub_ca = ztssh_ca::SubCa::from_keypair(sub_key);
     sub_ca.root_public_key = Some(intermediate.issuer_public_key);

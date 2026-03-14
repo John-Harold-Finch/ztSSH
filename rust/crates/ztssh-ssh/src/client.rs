@@ -19,10 +19,7 @@ pub struct SshClientConfig {
 }
 
 /// Run a ZTSSH client session over SSH.
-pub async fn run_ssh_session(
-    addr: &str,
-    principal: &str,
-) -> Result<(), SshTransportError> {
+pub async fn run_ssh_session(addr: &str, principal: &str) -> Result<(), SshTransportError> {
     let config = Arc::new(russh::client::Config::default());
 
     tracing::info!(server = addr, principal = principal, "Connecting via SSH");

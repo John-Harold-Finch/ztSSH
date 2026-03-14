@@ -71,8 +71,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize tracing
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     match cli.log_format.as_str() {
         "json" => {
@@ -123,8 +122,10 @@ async fn main() -> Result<()> {
             let engine = PolicyEngine::from_file(path)
                 .with_context(|| format!("failed to load policy file: {}", path.display()))?;
             tracing::info!(path = %path.display(), "Policy loaded");
-            emit(&AuditEvent::new(AuditEventType::PolicyLoaded, AuditOutcome::Success)
-                .detail(format!("Loaded from {}", path.display())));
+            emit(
+                &AuditEvent::new(AuditEventType::PolicyLoaded, AuditOutcome::Success)
+                    .detail(format!("Loaded from {}", path.display())),
+            );
             engine
         }
         None => {
@@ -140,8 +141,12 @@ async fn main() -> Result<()> {
     sub_ca.root_public_key = Some(intermediate.issuer_public_key);
     sub_ca.intermediate_cert = Some(intermediate);
 
-    emit(&AuditEvent::new(AuditEventType::ServerStarted, AuditOutcome::Success)
-        .detail(format!("Listening on {} (mode: {:?})", cli.listen, cli.mode)));
+    emit(
+        &AuditEvent::new(AuditEventType::ServerStarted, AuditOutcome::Success).detail(format!(
+            "Listening on {} (mode: {:?})",
+            cli.listen, cli.mode
+        )),
+    );
 
     match cli.mode {
         TransportMode::Tcp => {
@@ -150,7 +155,10 @@ async fn main() -> Result<()> {
                 .with_intervals(cli.challenge_interval, cli.challenge_deadline)
                 .with_policy(policy);
 
-            server.listen(&cli.listen).await.map_err(|e| anyhow::anyhow!(e))
+            server
+                .listen(&cli.listen)
+                .await
+                .map_err(|e| anyhow::anyhow!(e))
         }
         TransportMode::Ssh => {
             // SSH transport — ZTSSH protocol over SSH subsystem channels
@@ -163,7 +171,10 @@ async fn main() -> Result<()> {
             .map_err(|e| anyhow::anyhow!("failed to create SSH server config: {e}"))?;
 
             let server = ztssh_ssh::server::ZtsshSshServer::new(config);
-            server.listen(&cli.listen).await.map_err(|e| anyhow::anyhow!("{e}"))
+            server
+                .listen(&cli.listen)
+                .await
+                .map_err(|e| anyhow::anyhow!("{e}"))
         }
     }
 }

@@ -16,11 +16,7 @@ fn arb_server_id() -> impl Strategy<Value = String> {
 
 /// Helper: create an authorized Sub-CA with wildcard principals.
 fn make_authorized_sub_ca(root: &RootCa, server_kp: KeyPair, server_id: &str) -> SubCa {
-    let intermediate = root.authorize_server(
-        server_kp.public_key_bytes(),
-        server_id,
-        None,
-    );
+    let intermediate = root.authorize_server(server_kp.public_key_bytes(), server_id, None);
     let mut sub_ca = SubCa::from_keypair(server_kp);
     sub_ca.intermediate_cert = Some(intermediate);
     sub_ca.root_public_key = Some(root.public_key_bytes());

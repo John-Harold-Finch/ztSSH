@@ -51,8 +51,7 @@ impl FilesystemKeystore {
 
     fn read_index(&self) -> Result<Vec<KeyEntry>, KeystoreError> {
         let data = fs::read_to_string(self.index_path())?;
-        serde_json::from_str(&data)
-            .map_err(|e| KeystoreError::Serialization(e.to_string()))
+        serde_json::from_str(&data).map_err(|e| KeystoreError::Serialization(e.to_string()))
     }
 
     fn write_index(&self, entries: &[KeyEntry]) -> Result<(), KeystoreError> {
@@ -118,14 +117,9 @@ impl Keystore for FilesystemKeystore {
         }
 
         let bytes = fs::read(&key_path)?;
-        let key: [u8; 32] = bytes
-            .try_into()
-            .map_err(|v: Vec<u8>| {
-                KeystoreError::InvalidKeyData(format!(
-                    "expected 32 bytes, got {}",
-                    v.len()
-                ))
-            })?;
+        let key: [u8; 32] = bytes.try_into().map_err(|v: Vec<u8>| {
+            KeystoreError::InvalidKeyData(format!("expected 32 bytes, got {}", v.len()))
+        })?;
         Ok(key)
     }
 
@@ -174,7 +168,13 @@ mod tests {
         let pub_key = [7u8; 32];
 
         let entry = ks
-            .store("test-key", &priv_key, &pub_key, KeyPurpose::SubCa, Some("demo"))
+            .store(
+                "test-key",
+                &priv_key,
+                &pub_key,
+                KeyPurpose::SubCa,
+                Some("demo"),
+            )
             .unwrap();
         assert_eq!(entry.key_id, "test-key");
         assert_eq!(entry.purpose, KeyPurpose::SubCa);
@@ -199,8 +199,14 @@ mod tests {
     #[test]
     fn delete_key() {
         let (_dir, ks) = temp_keystore();
-        ks.store("del-me", &[5u8; 32], &[6u8; 32], KeyPurpose::ClientEphemeral, None)
-            .unwrap();
+        ks.store(
+            "del-me",
+            &[5u8; 32],
+            &[6u8; 32],
+            KeyPurpose::ClientEphemeral,
+            None,
+        )
+        .unwrap();
         assert!(ks.exists("del-me"));
 
         ks.delete("del-me").unwrap();

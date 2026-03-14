@@ -86,10 +86,18 @@ impl Default for ServerPolicy {
     }
 }
 
-fn default_max_connections() -> u32 { 0 }
-fn default_max_cert_ttl() -> u32 { 300 }
-fn default_min_challenge_interval() -> u32 { 10 }
-fn default_rate_window() -> u32 { 60 }
+fn default_max_connections() -> u32 {
+    0
+}
+fn default_max_cert_ttl() -> u32 {
+    300
+}
+fn default_min_challenge_interval() -> u32 {
+    10
+}
+fn default_rate_window() -> u32 {
+    60
+}
 
 /// Per-principal policy overrides.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -130,19 +130,20 @@ fn cmd_init(dir: &Path) -> Result<()> {
     let root_ca = RootCa::new();
 
     // Save private key (raw 32 bytes)
-    fs::write(dir.join("root.key"), root_ca.key_bytes())
-        .context("failed to write root.key")?;
+    fs::write(dir.join("root.key"), root_ca.key_bytes()).context("failed to write root.key")?;
 
     // Also store in keystore for structured management
-    let keystore = FilesystemKeystore::open(dir.join("keystore"))
-        .context("failed to initialize keystore")?;
-    keystore.store(
-        "root-ca",
-        &root_ca.key_bytes(),
-        &root_ca.public_key_bytes(),
-        KeyPurpose::RootCa,
-        Some("Root CA signing key"),
-    ).context("failed to store root key in keystore")?;
+    let keystore =
+        FilesystemKeystore::open(dir.join("keystore")).context("failed to initialize keystore")?;
+    keystore
+        .store(
+            "root-ca",
+            &root_ca.key_bytes(),
+            &root_ca.public_key_bytes(),
+            KeyPurpose::RootCa,
+            Some("Root CA signing key"),
+        )
+        .context("failed to store root key in keystore")?;
 
     // Save state (JSON)
     let state = CaState {
@@ -171,8 +172,7 @@ fn cmd_authorize_server(
 ) -> Result<()> {
     let (root_ca, mut state) = load_root_ca(dir)?;
 
-    let pubkey_bytes =
-        hex::decode(pubkey_hex).context("invalid hex for server public key")?;
+    let pubkey_bytes = hex::decode(pubkey_hex).context("invalid hex for server public key")?;
     if pubkey_bytes.len() != 32 {
         bail!(
             "server public key must be 32 bytes, got {}",
@@ -197,11 +197,12 @@ fn cmd_authorize_server(
     println!("Intermediate certificate issued:");
     println!("  Serial:     {}", cert.serial);
     println!("  Server ID:  {}", cert.server_id);
+    println!("  Principals: {:?}", cert.allowed_principals);
     println!(
-        "  Principals: {:?}",
-        cert.allowed_principals
+        "  TTL:        {:.0}s ({:.1}h)",
+        cert.ttl_remaining(),
+        cert.ttl_remaining() / 3600.0
     );
-    println!("  TTL:        {:.0}s ({:.1}h)", cert.ttl_remaining(), cert.ttl_remaining() / 3600.0);
     println!("  Written to: {}", out.display());
 
     Ok(())
@@ -231,7 +232,11 @@ fn cmd_show(dir: &Path) -> Result<()> {
     println!("  State dir:   {}", dir.display());
     println!("  Public key:  {}", state.public_key_hex);
     println!("  Next serial: {}", state.next_serial);
-    println!("  Intermediate TTL: {:.0}s ({:.1}h)", state.intermediate_ttl, state.intermediate_ttl / 3600.0);
+    println!(
+        "  Intermediate TTL: {:.0}s ({:.1}h)",
+        state.intermediate_ttl,
+        state.intermediate_ttl / 3600.0
+    );
     println!(
         "  Revocation list: {} bans, {} server revocations, {} client revocations",
         serde_json::to_value(&state.revocation_list)?
@@ -263,16 +268,15 @@ fn cmd_export_revocation(dir: &Path, out: &Path) -> Result<()> {
 
 fn cmd_generate_server_key(out: &Path) -> Result<()> {
     let kp = KeyPair::new();
-    fs::write(out, kp.to_bytes()).with_context(|| format!("failed to write to {}", out.display()))?;
+    fs::write(out, kp.to_bytes())
+        .with_context(|| format!("failed to write to {}", out.display()))?;
 
     // If a keystore directory exists alongside the output, store metadata there too
     if let Some(parent) = out.parent() {
         let keystore_dir = parent.join("keystore");
         if keystore_dir.exists() {
             if let Ok(ks) = FilesystemKeystore::open(&keystore_dir) {
-                let key_id = out.file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("server");
+                let key_id = out.file_stem().and_then(|s| s.to_str()).unwrap_or("server");
                 let _ = ks.store(
                     key_id,
                     &kp.to_bytes(),
@@ -293,8 +297,8 @@ fn cmd_generate_server_key(out: &Path) -> Result<()> {
 // ─── Helpers ───
 
 fn load_state(dir: &Path) -> Result<CaState> {
-    let json =
-        fs::read_to_string(dir.join("state.json")).context("failed to read state.json — is the CA initialized?")?;
+    let json = fs::read_to_string(dir.join("state.json"))
+        .context("failed to read state.json — is the CA initialized?")?;
     serde_json::from_str(&json).context("failed to parse state.json")
 }
 
